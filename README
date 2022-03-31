@@ -1,0 +1,8 @@
+NAME
+----
+fc - process the command history list
+
+fc command alternative. Works with any shell that supports history file. 
+Similar to and inspired by POSIX FC(1P).
+To get started run fc -h and familiarize yourself with the options
+as well as the source code may be beneficial.
