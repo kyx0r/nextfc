@@ -95,10 +95,13 @@ int main(int argc, char *argv[])
 			if (!f)
 				die("readfile failed\n")
 			if (i == argc-1) {
-				while (filesz && (!f[filesz] || f[filesz] == '\n'))
+				do
 					filesz--;
+				while (filesz && (!f[filesz] || f[filesz] == '\n'));
+				/* skip last entered command, which would be this one */
+				while (filesz && f[filesz--] != '\n'); /* ←   ↑ */
 				filesz1 = filesz;
-				for (int i = 0; i < i1+1 && filesz; i++)
+				for (int i = 0; i < i1 && filesz; i++)
 					while (filesz && f[filesz--] != '\n');
 				if (lflag) {
 					if (nflag) {
@@ -122,24 +125,24 @@ int main(int argc, char *argv[])
 			if (argv[++i][0] != '-') {
 				i2 = atoi(&argv[i][0]);
 				int c = 0, x = 0, z;
-				for (z = 0; f[c]; c++)
+				for (z = 0; c < filesz; c++)
 					if (f[c] == '\n' && z++ == i1)
 						break;
 				while (c && f[--c] != '\n');
 				c += c ? 1 : c;
 				x = c;
-				for (z = i1; f[c]; c++)
+				for (z = i1; c < filesz; c++)
 					if (f[c] == '\n' && z++ == i2)
 						break;
 				if (lflag) {
 					if (nflag) {
-						for (int i = x; i < c + 1; i1++) {
+						for (int i = x; i < c; i1++) {
 							z = strchr(&f[i], '\n') - &f[i] + 1;
 							p("%d %.*s", i1, z, &f[i])
 							i += z;
 						}
 					} else
-						p("%.*s", c - x + 1 , &f[x])
+						p("%.*s", c - x, &f[x])
 					continue;
 				}
 				write_tmp(x, c - x + 1)
