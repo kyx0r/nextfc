@@ -155,8 +155,8 @@ int main(int argc, char *argv[])
 				"  -e vi\t\tspecify editor\n"
 				"  -d out\tspecify history file\n"
 				"  -l 0 20\tlist lines 0-20 from history\n"
-				"  -l 20\tlist last 20 commands from history\n"
-				"  -n \tsuppress command numbers when listing with -l\n"
+				"  -l 20\t\tlist last 20 commands from history\n"
+				"  -n \t\tsuppress command numbers when listing with -l\n"
 				)
 		else if (argv[i][1] == 'e')
 			ed[0] = &argv[++i][0];
