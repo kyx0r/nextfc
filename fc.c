@@ -7,7 +7,7 @@
 #include <sys/wait.h>
 #include <termios.h>
 
-#define p(s, ...) { printf(s, ##__VA_ARGS__); }
+#define p printf
 #define die(s) { fprintf(stderr, s); abort(); }
 
 char *readfile(char *path, long *n)
@@ -53,7 +53,7 @@ void spawn(char **arg) {
 		waitpid(pid, NULL, 0);
 }
 
-static char* ed[] = {"$EDITOR", "vi", "ed", NULL};
+static char* ed[] = {"$EDITOR", "$FCEDIT", "ed", "vi", NULL};
 static char* hist[] = {"$HISTFILE", "/root/.ash_history", NULL};
 
 #define write_tmp(from, size) \
@@ -81,7 +81,8 @@ int main(int argc, char *argv[])
 			termios.c_lflag &= ~ECHO;
 			tcsetattr(0, TCSAFLUSH, &termios);
 			int fd = open(ctermid(NULL), O_WRONLY);
-			while (*f)
+			char *fend = f + filesz;
+			while (f != fend)
 				ioctl(fd, TIOCSTI, f++);
 			termios.c_lflag |= ECHO;
 			tcsetattr(0, 0, &termios);
@@ -94,10 +95,10 @@ int main(int argc, char *argv[])
 			f = readfile(xgetenv(hist), &filesz);
 			if (!f)
 				die("readfile failed\n")
+			if (!filesz)
+				continue;
 			if (i == argc-1) {
-				do
-					filesz--;
-				while (filesz && (!f[filesz] || f[filesz] == '\n'));
+				while (filesz && f[--filesz] == '\n');
 				/* skip last entered command, which would be this one */
 				while (filesz && f[filesz--] != '\n'); /* ←   ↑ */
 				filesz1 = filesz;
@@ -112,14 +113,15 @@ int main(int argc, char *argv[])
 						int c;
 						for (int i = lc, z = filesz+2; i < lc + i1; i++) {
 							c = strchr(&f[z], '\n') - &f[z] + 1;
-							p("%d %.*s", i, c, &f[z])
+							p("%d %.*s", i, c, &f[z]);
 							z += c;
 						}
 					} else
-						p("%.*s", (int)(filesz1 - filesz), &f[filesz+2])
+						p("%.*s", (int)(filesz1 - filesz), 
+								&f[filesz ? filesz+2 : filesz]);
 					continue;
 				}
-				write_tmp(filesz+2, filesz1 - filesz)
+				write_tmp(filesz ? filesz+2 : filesz, filesz1 - filesz)
 				goto edit;
 			}
 			if (argv[++i][0] != '-') {
@@ -138,14 +140,14 @@ int main(int argc, char *argv[])
 					if (nflag) {
 						for (int i = x; i < c; i1++) {
 							z = strchr(&f[i], '\n') - &f[i] + 1;
-							p("%d %.*s", i1, z, &f[i])
+							p("%d %.*s", i1, z, &f[i]);
 							i += z;
 						}
 					} else
-						p("%.*s", c - x, &f[x])
+						p("%.*s", c - x, &f[x]);
 					continue;
 				}
-				write_tmp(x, c - x + 1)
+				write_tmp(x, c - x)
 				goto edit;
 			}
 			continue;
@@ -159,8 +161,7 @@ int main(int argc, char *argv[])
 				"  -d out\tspecify history file\n"
 				"  -l 0 20\tlist lines 0-20 from history\n"
 				"  -l 20\t\tlist last 20 commands from history\n"
-				"  -n \t\tsuppress command numbers when listing with -l\n"
-				)
+				"  -n \t\tsuppress command numbers when listing with -l\n");
 		else if (argv[i][1] == 'e')
 			ed[0] = &argv[++i][0];
 		else if (argv[i][1] == 'd')
