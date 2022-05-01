@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <termios.h>
 
 #define p printf
@@ -29,6 +30,14 @@ char *readfile(char *path, long *n)
 	return buf;
 }
 
+static long getmtime(char *path)
+{
+	struct stat st;
+	if (!stat(path, &st))
+		return st.st_mtime;
+	return -1;
+}
+
 char *xgetenv(char **q)
 {
 	char *r = NULL;
@@ -48,7 +57,7 @@ void spawn(char **arg) {
 		die("fork() failed\n")
 	} else if (pid == 0) {
 		execvp(arg[0], arg);
-		exit(EXIT_FAILURE);
+		die("execvp() failed\n")
 	} else
 		waitpid(pid, NULL, 0);
 }
@@ -69,13 +78,15 @@ int main(int argc, char *argv[])
 	char *f;
 	long filesz, filesz1;
 	int i1, i2, lflag = 0, nflag = 1;
+	long mtime;
 	if (argc == 1) {
 		if (open("/tmp/fcbuf", O_WRONLY | O_CREAT | O_TRUNC, 0600) < 0)
 			die("failed to open/create /tmp/fcbuf, check permissions.\n")
 		edit:
-		spawn((char *[]){xgetenv(ed), "/tmp/fcbuf"});
+		mtime = getmtime("/tmp/fcbuf");
+		spawn((char *[]){xgetenv(ed), "/tmp/fcbuf", NULL});
 		f = readfile("/tmp/fcbuf", &filesz);
-		if (f) {
+		if (f && getmtime("/tmp/fcbuf") != mtime) {
 			struct termios termios;
 			tcgetattr(0, &termios);
 			termios.c_lflag &= ~ECHO;
